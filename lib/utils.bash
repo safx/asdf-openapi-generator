@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-# TODO: Ensure this is the correct GitHub homepage where releases can be downloaded for openapi-generator.
 GH_REPO="https://github.com/OpenAPITools/openapi-generator"
 TOOL_NAME="openapi-generator"
 TOOL_TEST="openapi-generator-cli version"
@@ -31,8 +30,6 @@ list_github_tags() {
 }
 
 list_all_versions() {
-  # TODO: Adapt this. By default we simply list the tag names from GitHub releases.
-  # Change this function if openapi-generator has other means of determining installable versions.
   list_github_tags
 }
 
@@ -41,8 +38,8 @@ download_release() {
   version="$1"
   filename="$2"
 
-  # TODO: Adapt the release URL convention for openapi-generator
-  url="$GH_REPO/archive/v${version}.tar.gz"
+  # Note: some old packages are unable to download from maven repository.
+  url="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/${version}/${TOOL_NAME}-cli-${version}.jar"
 
   echo "* Downloading $TOOL_NAME release $version..."
   curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -53,19 +50,26 @@ install_version() {
   local version="$2"
   local install_path="$3"
 
+  if ! which java >/dev/null; then
+    echo "You need a Java Runtime already installed on your computer."
+    echo "Follow the instructions for your platform or download it"
+    echo "from http://java.com/en/download"
+    exit 1
+  fi
+
   if [ "$install_type" != "version" ]; then
     fail "asdf-$TOOL_NAME supports release installs only"
   fi
 
-  # TODO: Adapt this to proper extension and adapt extracting strategy.
-  local release_file="$install_path/$TOOL_NAME-$version.tar.gz"
+  local release_file="$install_path/$TOOL_NAME-cli-$version.jar"
+  local script_file="$install_path/bin/$TOOL_NAME-cli"
   (
-    mkdir -p "$install_path"
+    mkdir -p "$install_path/bin"
     download_release "$version" "$release_file"
-    tar -xzf "$release_file" -C "$install_path" --strip-components=1 || fail "Could not extract $release_file"
-    rm "$release_file"
+    # command line parameters are copied from openapi-generator-cli.sh (https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh)
+    echo 'java -ea ${JAVA_OPTS} -Xms512M -Xmx1024M -server -jar '"$release_file"' "$@"' > "$script_file"
+    chmod +x "$script_file"
 
-    # TODO: Asert openapi-generator executable exists.
     local tool_cmd
     tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
     test -x "$install_path/bin/$tool_cmd" || fail "Expected $install_path/bin/$tool_cmd to be executable."
