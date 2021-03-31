@@ -67,7 +67,7 @@ install_version() {
     mkdir -p "$install_path/bin"
     download_release "$version" "$release_file"
     # command line parameters are copied from openapi-generator-cli.sh (https://github.com/OpenAPITools/openapi-generator/blob/master/bin/utils/openapi-generator-cli.sh)
-    echo 'java -ea ${JAVA_OPTS} -Xms512M -Xmx1024M -server -jar '"$release_file"' "$@"' > "$script_file"
+    echo 'java -ea ${JAVA_OPTS} -Xms512M -Xmx1024M -server -jar '"$release_file"' "$@"' >"$script_file"
     chmod +x "$script_file"
 
     local tool_cmd
